@@ -29,6 +29,23 @@ import bs58 from 'bs58';
 
 dotenv.config();
 
+// ============================================================================
+// CONFIGURATION - Edit these values as needed
+// ============================================================================
+
+// Environment variables (from .env file)
+const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
+const RPC_URL = process.env.RPC_URL || 'https://api.mainnet-beta.solana.com';
+
+// Trading configuration - Edit these values
+const COLLATERAL_AMOUNT = 5; // Amount to deposit (in USDC or SOL)
+const COLLATERAL_ASSET: 'USDC' | 'SOL' = 'USDC'; // Asset to deposit as collateral
+const LEVERAGE = 10; // Leverage multiplier (e.g., 10 for 10x)
+const POSITION: 'long' | 'short' = 'long'; // Position direction
+const MARKET_INDEX = 0; // Perp market index to trade
+
+// ============================================================================
+
 // Get public key from private key (base58 string, JSON string, or array)
 function getPublicKeyFromPrivateKey(privateKey: string | number[] | Uint8Array): PublicKey {
   let keypair: Keypair;
@@ -515,45 +532,41 @@ function getKeypairFromPrivateKey(privateKey: string | number[] | Uint8Array): K
   }
 }
 
-// Example usage
+// Main execution function
 async function main() {
-  // For testing: Generate a dummy keypair if no private key is provided
-  let privateKey: string | number[] | Uint8Array | undefined;
-  let dummyKeypair: Keypair | null = null;
-  
-  if (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY.trim() !== '') {
-    privateKey = process.env.PRIVATE_KEY;
-    console.log('Using PRIVATE_KEY from environment');
-  } else {
-    console.log('No PRIVATE_KEY found, generating dummy keypair for testing...');
-    dummyKeypair = Keypair.generate();
-    privateKey = Array.from(dummyKeypair.secretKey);
-    console.log('Using dummy keypair for testing (transactions will not be valid for real accounts)');
-    console.log(`Dummy keypair public key: ${dummyKeypair.publicKey.toString()}`);
+  // Validate configuration
+  if (!PRIVATE_KEY || PRIVATE_KEY.trim() === '') {
+    console.error('❌ Error: PRIVATE_KEY is required in .env file');
+    console.error('   Please set PRIVATE_KEY in your .env file');
+    process.exit(1);
   }
 
+  const privateKey = PRIVATE_KEY;
+
   try {
-    console.log('Starting deposit and trade quote generation...\n');
-    
-    // If we have a dummy keypair, use it directly to get public key
-    const userPublicKey = dummyKeypair 
-      ? dummyKeypair.publicKey 
-      : (privateKey ? getPublicKeyFromPrivateKey(privateKey) : (() => { throw new Error('No private key or keypair provided'); })());
-    
+    console.log('='.repeat(60));
+    console.log('DRIFT PERPS TRADING BOT');
+    console.log('='.repeat(60));
+    console.log('\nConfiguration:');
+    console.log(`  Collateral Amount: ${COLLATERAL_AMOUNT} ${COLLATERAL_ASSET}`);
+    console.log(`  Leverage: ${LEVERAGE}x`);
+    console.log(`  Position: ${POSITION.toUpperCase()}`);
+    console.log(`  Market Index: ${MARKET_INDEX}`);
+    console.log(`  RPC URL: ${RPC_URL}`);
+    console.log('\n' + '='.repeat(60) + '\n');
+
+    // Get public key from private key
+    const userPublicKey = getPublicKeyFromPrivateKey(privateKey);
+    console.log(`User Public Key: ${userPublicKey.toString()}\n`);
+
     // Initialize connection
-    const connection = new Connection(
-      process.env.RPC_URL || 'https://api.mainnet-beta.solana.com',
-      'confirmed'
-    );
+    const connection = new Connection(RPC_URL, 'confirmed');
 
     // Initialize DriftClient with public key only
     const driftClient = await initializeDriftClient(connection, userPublicKey, 'mainnet-beta');
 
-    console.log(`User Public Key: ${userPublicKey.toString()}`);
-    console.log(`Depositing 5 USDC...`);
-
-    // Get spot market for USDC
-    const spotMarketIndex = getSpotMarketIndex('USDC', 'mainnet-beta');
+    // Get spot market for the collateral asset
+    const spotMarketIndex = getSpotMarketIndex(COLLATERAL_ASSET, 'mainnet-beta');
     const spotMarket = driftClient.getSpotMarketAccount(spotMarketIndex);
     if (!spotMarket) {
       throw new Error(`Spot market ${spotMarketIndex} not found`);
@@ -562,13 +575,13 @@ async function main() {
     // Get precision from market config
     const marketConfig = MainnetSpotMarkets.find((m) => m.marketIndex === spotMarketIndex);
     if (!marketConfig) {
-      throw new Error(`Market config for USDC not found`);
+      throw new Error(`Market config for ${COLLATERAL_ASSET} not found`);
     }
 
-    // Amount in token precision (5 USDC)
-    const depositAmountBN = new BN(5).mul(marketConfig.precision);
+    // Amount in token precision
+    const depositAmountBN = new BN(COLLATERAL_AMOUNT).mul(marketConfig.precision);
 
-    // Check USDC balance before attempting deposit
+    // Check balance before attempting deposit
     const associatedTokenAccount = await getAssociatedTokenAddress(
       spotMarket.mint,
       userPublicKey,
@@ -576,24 +589,24 @@ async function main() {
       TOKEN_PROGRAM_ID
     );
     
-    console.log(`Checking USDC balance...`);
+    console.log(`Checking ${COLLATERAL_ASSET} balance...`);
     console.log(`Associated Token Account: ${associatedTokenAccount.toString()}`);
     
     try {
       const tokenAccount = await getAccount(connection, associatedTokenAccount);
       const balance = Number(tokenAccount.amount);
-      const balanceInUSDC = balance / Math.pow(10, marketConfig.precisionExp.toNumber());
-      console.log(`Current USDC balance: ${balanceInUSDC} USDC`);
+      const balanceInAsset = balance / Math.pow(10, marketConfig.precisionExp.toNumber());
+      console.log(`Current ${COLLATERAL_ASSET} balance: ${balanceInAsset} ${COLLATERAL_ASSET}`);
       
       if (balance < depositAmountBN.toNumber()) {
         throw new Error(
-          `Insufficient USDC balance. Required: 5 USDC, Available: ${balanceInUSDC} USDC`
+          `Insufficient ${COLLATERAL_ASSET} balance. Required: ${COLLATERAL_AMOUNT} ${COLLATERAL_ASSET}, Available: ${balanceInAsset} ${COLLATERAL_ASSET}`
         );
       }
     } catch (error: any) {
       if (error.name === 'TokenAccountNotFoundError') {
-        console.log('⚠️  USDC token account does not exist. You need to have USDC in your wallet first.');
-        throw new Error('USDC token account not found. Please ensure you have USDC in your wallet.');
+        console.log(`⚠️  ${COLLATERAL_ASSET} token account does not exist. You need to have ${COLLATERAL_ASSET} in your wallet first.`);
+        throw new Error(`${COLLATERAL_ASSET} token account not found. Please ensure you have ${COLLATERAL_ASSET} in your wallet.`);
       }
       throw error;
     }
@@ -603,21 +616,25 @@ async function main() {
       driftClient,
       userPublicKey,
       depositAmountBN,
-      'USDC',
+      COLLATERAL_ASSET,
       0
     );
 
-    console.log('Deposit transaction built');
+    console.log('✅ Deposit transaction built');
 
-    // Calculate trade size for 10x leverage
-    const leverage = 10;
+    // Calculate trade size based on leverage
     const depositInQuotePrecision = depositAmountBN.mul(QUOTE_PRECISION).div(marketConfig.precision);
-    const tradeSize = depositInQuotePrecision.mul(new BN(leverage));
+    const tradeSize = depositInQuotePrecision.mul(new BN(LEVERAGE));
 
-    // Get perp market for price
-    const perpMarket = driftClient.getPerpMarketAccount(0);
+    console.log(`\nTrade Calculation:`);
+    console.log(`  Deposit: ${COLLATERAL_AMOUNT} ${COLLATERAL_ASSET}`);
+    console.log(`  Leverage: ${LEVERAGE}x`);
+    console.log(`  Trade Size: ${tradeSize.toNumber() / 1e6} USDC`);
+
+    // Get perp market for the specified market index
+    const perpMarket = driftClient.getPerpMarketAccount(MARKET_INDEX);
     if (!perpMarket) {
-      throw new Error('Perp market 0 not found');
+      throw new Error(`Perp market ${MARKET_INDEX} not found`);
     }
 
     const oraclePriceData = driftClient.getOraclePriceDataAndSlot(
@@ -629,13 +646,13 @@ async function main() {
       throw new Error('Oracle price data not available');
     }
 
-    const positionDirection = PositionDirection.LONG;
+    const positionDirection = POSITION === 'long' ? PositionDirection.LONG : PositionDirection.SHORT;
 
     // Build perp order transaction
     const tradeTx = await buildPerpOrderTransaction(
       driftClient,
       userPublicKey,
-      0,
+      MARKET_INDEX,
       tradeSize,
       positionDirection,
       0
@@ -644,8 +661,7 @@ async function main() {
     const price = oraclePriceData.data.price;
     const priceInUSD = price.toNumber() / 1e6;
 
-    console.log(`Trade size: ${tradeSize.toString()} (${tradeSize.toNumber() / 1e6} USDC)`);
-    console.log(`Estimated price: ${priceInUSD} USD`);
+    console.log(`  Estimated Price: $${priceInUSD.toFixed(2)} USD\n`);
 
     const result = {
       depositTx,
@@ -654,19 +670,13 @@ async function main() {
       estimatedPrice: priceInUSD.toString(),
     };
 
-    console.log('\n=== Transaction Data ===');
-    console.log('Deposit Transaction built');
-    console.log('Trade Transaction built');
-    console.log('Trade Size:', result.tradeSize);
-    console.log('Estimated Price:', result.estimatedPrice);
-
     // Sign and send deposit transaction
-    if (dummyKeypair) {
-      console.log('\n⚠️  Using dummy keypair - transactions are for testing only and will fail on-chain');
-      console.log('Please provide a real PRIVATE_KEY to send actual transactions.');
-    } else if (privateKey) {
-      console.log('\nSigning deposit transaction...');
-      const signedDepositTx = signTransactionWithPrivateKey(result.depositTx, privateKey);
+    console.log('='.repeat(60));
+    console.log('STEP 1: DEPOSIT COLLATERAL');
+    console.log('='.repeat(60));
+    console.log(`\nDepositing ${COLLATERAL_AMOUNT} ${COLLATERAL_ASSET}...`);
+    console.log('Signing deposit transaction...');
+    const signedDepositTx = signTransactionWithPrivateKey(result.depositTx, privateKey);
       
       console.log('Sending deposit transaction to network...');
       
@@ -731,36 +741,42 @@ async function main() {
           console.error(`- Your wallet has SOL for fees`);
           console.error(`- View transaction: https://solscan.io/tx/${depositTxSig}`);
           throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-        } else {
-          console.log(`✅ Deposit transaction confirmed!`);
-          console.log(`\n💰 Successfully deposited 5 USDC!`);
-        }
-      } catch (error: any) {
-        if (error.message === 'Timeout' || error.message?.includes('not confirmed')) {
-          console.log(`\n⏳ Confirmation timeout - checking transaction status...`);
-          // Check if transaction was actually successful
-          const status = await connection.getSignatureStatus(depositTxSig);
-          if (status.value?.err) {
-            console.error('❌ Transaction failed:', status.value.err);
-            throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
-          } else if (status.value?.confirmationStatus) {
-            console.log(`✅ Transaction appears to be ${status.value.confirmationStatus}`);
-            console.log(`\n💰 Deposit may have succeeded! Please verify on Solana Explorer.`);
-            console.log(`   View: https://solscan.io/tx/${depositTxSig}`);
           } else {
-            console.log(`\n⚠️  Transaction status unknown. Please check manually:`);
-            console.log(`   https://solscan.io/tx/${depositTxSig}`);
-            // Continue anyway - the transaction might have succeeded
-            console.log(`\n💰 Proceeding assuming deposit succeeded...`);
+            console.log(`✅ Deposit transaction confirmed!`);
+            console.log(`\n💰 Successfully deposited ${COLLATERAL_AMOUNT} ${COLLATERAL_ASSET}!`);
           }
-        } else {
-          throw error;
+        } catch (error: any) {
+          if (error.message === 'Timeout' || error.message?.includes('not confirmed')) {
+            console.log(`\n⏳ Confirmation timeout - checking transaction status...`);
+            // Check if transaction was actually successful
+            const status = await connection.getSignatureStatus(depositTxSig);
+            if (status.value?.err) {
+              console.error('❌ Transaction failed:', status.value.err);
+              throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
+            } else if (status.value?.confirmationStatus) {
+              console.log(`✅ Transaction appears to be ${status.value.confirmationStatus}`);
+              console.log(`\n💰 Deposit may have succeeded! Please verify on Solana Explorer.`);
+              console.log(`   View: https://solscan.io/tx/${depositTxSig}`);
+            } else {
+              console.log(`\n⚠️  Transaction status unknown. Please check manually:`);
+              console.log(`   https://solscan.io/tx/${depositTxSig}`);
+              // Continue anyway - the transaction might have succeeded
+              console.log(`\n💰 Proceeding assuming deposit succeeded...`);
+            }
+          } else {
+            throw error;
+          }
         }
-      }
-      
-      // Now sign and send the trade transaction (only if deposit succeeded or we're proceeding)
-      console.log('\nSigning trade transaction...');
-      const signedTradeTx = signTransactionWithPrivateKey(result.tradeTx, privateKey);
+        
+        // Now sign and send the trade transaction
+        console.log('\n' + '='.repeat(60));
+        console.log('STEP 2: OPEN PERP POSITION');
+        console.log('='.repeat(60));
+        console.log(`\nOpening ${POSITION.toUpperCase()} position on market index ${MARKET_INDEX}...`);
+        console.log(`Trade size: ${result.tradeSize} (${Number(result.tradeSize) / 1e6} USDC)`);
+        console.log(`Leverage: ${LEVERAGE}x`);
+        console.log('Signing trade transaction...');
+        const signedTradeTx = signTransactionWithPrivateKey(result.tradeTx, privateKey);
       
       console.log('Sending trade transaction to network...');
       const tradeTxSig = await connection.sendRawTransaction(
@@ -789,27 +805,30 @@ async function main() {
         if (tradeConfirmation.value?.err) {
           console.error('❌ Trade transaction failed:', tradeConfirmation.value.err);
           throw new Error(`Trade transaction failed: ${JSON.stringify(tradeConfirmation.value.err)}`);
-        } else {
-          console.log(`✅ Trade transaction confirmed!`);
-          console.log(`\n🎉 Successfully opened ${result.tradeSize} USDC position at 10x leverage!`);
-        }
-      } catch (error: any) {
-        if (error.message === 'Timeout' || error.message?.includes('not confirmed')) {
-          console.log(`\n⏳ Trade confirmation timeout - checking status...`);
-          const status = await connection.getSignatureStatus(tradeTxSig);
-          if (status.value?.err) {
-            console.error('❌ Trade transaction failed:', status.value.err);
-            throw new Error(`Trade transaction failed: ${JSON.stringify(status.value.err)}`);
           } else {
-            console.log(`✅ Trade transaction may have succeeded! Check: https://solscan.io/tx/${tradeTxSig}`);
+            console.log(`✅ Trade transaction confirmed!`);
+            console.log(`\n🎉 Successfully opened ${POSITION.toUpperCase()} position!`);
+            console.log(`   Market Index: ${MARKET_INDEX}`);
+            console.log(`   Trade Size: ${Number(result.tradeSize) / 1e6} USDC`);
+            console.log(`   Leverage: ${LEVERAGE}x`);
           }
-        } else {
-          throw error;
+        } catch (error: any) {
+          if (error.message === 'Timeout' || error.message?.includes('not confirmed')) {
+            console.log(`\n⏳ Trade confirmation timeout - checking status...`);
+            const status = await connection.getSignatureStatus(tradeTxSig);
+            if (status.value?.err) {
+              console.error('❌ Trade transaction failed:', status.value.err);
+              throw new Error(`Trade transaction failed: ${JSON.stringify(status.value.err)}`);
+            } else {
+              console.log(`✅ Trade transaction may have succeeded! Check: https://solscan.io/tx/${tradeTxSig}`);
+            }
+          } else {
+            throw error;
+          }
         }
-      }
-    } else {
-      console.log('\n⚠️  No private key provided. Cannot sign transactions.');
-    }
+    console.log('\n' + '='.repeat(60));
+    console.log('COMPLETE');
+    console.log('='.repeat(60));
   } catch (error) {
     console.error('Error:', error);
     if (error instanceof Error) {
