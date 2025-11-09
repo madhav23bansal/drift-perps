@@ -1,0 +1,26 @@
+{
+  "name": "drift-perps",
+  "version": "1.0.0",
+  "description": "TypeScript Node.js project with hot reload",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@drift-labs/sdk": "2.144.0-beta.4",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.87.6",
+    "bn.js": "^5.2.2",
+    "dotenv": "^16.3.1"
+  }
+}
