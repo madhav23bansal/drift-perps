@@ -301,7 +301,30 @@ async function buildPerpOrderTransaction(
   // Calculate base asset amount from quote size
   // baseAmount = quoteSize / price
   const price = oraclePriceData.data.price;
-  const baseAmount = tradeSize.mul(QUOTE_PRECISION).div(price);
+  let baseAmount = tradeSize.mul(QUOTE_PRECISION).div(price);
+
+  // Ensure base amount meets minimum order step size requirement
+  const orderStepSize = perpMarket.amm.orderStepSize;
+  
+  // Round up to the nearest multiple of orderStepSize
+  if (baseAmount.lt(orderStepSize)) {
+    console.log(`⚠️  Calculated base amount (${baseAmount.toString()}) is below minimum order step size (${orderStepSize.toString()})`);
+    console.log(`   Rounding up to minimum order step size...`);
+    baseAmount = orderStepSize;
+  } else {
+    // Round up to nearest multiple of orderStepSize
+    const remainder = baseAmount.mod(orderStepSize);
+    if (!remainder.isZero()) {
+      baseAmount = baseAmount.sub(remainder).add(orderStepSize);
+      console.log(`   Rounded up base amount to meet order step size requirement`);
+    }
+  }
+  
+  // Recalculate actual trade size based on rounded base amount
+  const actualTradeSize = baseAmount.mul(price).div(QUOTE_PRECISION);
+  console.log(`Base asset amount: ${baseAmount.toString()}`);
+  console.log(`Order step size: ${orderStepSize.toString()}`);
+  console.log(`Actual trade size: ${actualTradeSize.toString()} (${actualTradeSize.toNumber() / 1e6} USDC)`);
 
   // Build order params
   const orderParams = {
