@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@coral-xyz/anchor':
+    specifier: ^0.32.1
+    version: 0.32.1
   '@drift-labs/sdk':
     specifier: 2.144.0-beta.4
     version: 2.144.0-beta.4(@solana/sysvars@2.3.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.18.3)
@@ -17,11 +20,17 @@ dependencies:
   bn.js:
     specifier: ^5.2.2
     version: 5.2.2
+  bs58:
+    specifier: ^6.0.0
+    version: 6.0.0
   dotenv:
     specifier: ^16.3.1
     version: 16.6.1
 
 devDependencies:
+  '@types/bs58':
+    specifier: ^5.0.0
+    version: 5.0.0
   '@types/node':
     specifier: ^20.10.0
     version: 20.19.23
@@ -41,6 +50,11 @@ packages:
 
   /@coral-xyz/anchor-errors@0.30.1:
     resolution: {integrity: sha512-9Mkradf5yS5xiLWrl9WrpjqOrAV+/W2RQHDlbnAZBivoGpOs1ECjoDCkVk4aRG8ZdiFiB8zQEVlxf+8fKkmSfQ==}
+    engines: {node: '>=10'}
+    dev: false
+
+  /@coral-xyz/anchor-errors@0.31.1:
+    resolution: {integrity: sha512-NhNEku4F3zzUSBtrYz84FzYWm48+9OvmT1Hhnwr6GnPQry2dsEqH/ti/7ASjjpoFTWRnPXrjAIT1qM6Isop+LQ==}
     engines: {node: '>=10'}
     dev: false
 
@@ -93,6 +107,29 @@ packages:
       - utf-8-validate
     dev: false
 
+  /@coral-xyz/anchor@0.32.1:
+    resolution: {integrity: sha512-zAyxFtfeje2FbMA1wzgcdVs7Hng/MijPKpRijoySPCicnvcTQs/+dnPZ/cR+LcXM9v9UYSyW81uRNYZtN5G4yg==}
+    engines: {node: '>=17'}
+    dependencies:
+      '@coral-xyz/anchor-errors': 0.31.1
+      '@coral-xyz/borsh': 0.31.1(@solana/web3.js@1.98.0)
+      '@noble/hashes': 1.8.0
+      '@solana/web3.js': 1.98.0
+      bn.js: 5.2.2
+      bs58: 4.0.1
+      buffer-layout: 1.2.2
+      camelcase: 6.3.0
+      cross-fetch: 3.2.0
+      eventemitter3: 4.0.7
+      pako: 2.1.0
+      superstruct: 0.15.5
+      toml: 3.0.0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - utf-8-validate
+    dev: false
+
   /@coral-xyz/borsh@0.29.0(@solana/web3.js@1.98.0):
     resolution: {integrity: sha512-s7VFVa3a0oqpkuRloWVPdCK7hMbAMY270geZOGfCnaqexrP5dTIpbEHL33req6IYPPJ0hYa71cdvJ1h6V55/oQ==}
     engines: {node: '>=10'}
@@ -109,6 +146,17 @@ packages:
     engines: {node: '>=10'}
     peerDependencies:
       '@solana/web3.js': ^1.68.0
+    dependencies:
+      '@solana/web3.js': 1.98.0
+      bn.js: 5.2.2
+      buffer-layout: 1.2.2
+    dev: false
+
+  /@coral-xyz/borsh@0.31.1(@solana/web3.js@1.98.0):
+    resolution: {integrity: sha512-9N8AU9F0ubriKfNE3g1WF0/4dtlGXoBN/hd1PvbNBamBNwRgHxH4P+o3Zt7rSEloW1HUs6LfZEchlx9fW7POYw==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      '@solana/web3.js': ^1.69.0
     dependencies:
       '@solana/web3.js': 1.98.0
       bn.js: 5.2.2
@@ -1562,6 +1610,13 @@ packages:
       '@grpc/grpc-js': 1.14.0
     dev: false
 
+  /@types/bs58@5.0.0:
+    resolution: {integrity: sha512-cAw/jKBzo98m6Xz1X5ETqymWfIMbXbu6nK15W4LQYjeHJkVqSmM5PO8Bd9KVHQJ/F4rHcSso9LcjtgCW6TGu2w==}
+    deprecated: This is a stub types definition. bs58 provides its own type definitions, so you do not need this installed.
+    dependencies:
+      bs58: 6.0.0
+    dev: true
+
   /@types/connect@3.4.38:
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
     dependencies:
@@ -1689,7 +1744,6 @@ packages:
 
   /base-x@5.0.1:
     resolution: {integrity: sha512-M7uio8Zt++eg3jPj+rHMfCC+IuygQHHCOU+IYsVtik6FWjuYpVt/+MRKcgsAMHh8mMFAwnB+Bs+mTrFiXjMzKg==}
-    dev: false
 
   /base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
@@ -1745,7 +1799,6 @@ packages:
     resolution: {integrity: sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==}
     dependencies:
       base-x: 5.0.1
-    dev: false
 
   /buffer-layout@1.2.2:
     resolution: {integrity: sha512-kWSuLN694+KTk8SrYvCqwP2WcgQjoRCiF5b4QDvkkz8EmgD+aWAIceGFKMIAdmF/pH+vpgNV3d3kAKorcdAmWA==}

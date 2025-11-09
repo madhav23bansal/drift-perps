@@ -12,15 +12,18 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/bs58": "^5.0.0",
     "@types/node": "^20.10.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
     "@drift-labs/sdk": "2.144.0-beta.4",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.87.6",
     "bn.js": "^5.2.2",
+    "bs58": "^6.0.0",
     "dotenv": "^16.3.1"
   }
 }
