@@ -26,6 +26,9 @@ dependencies:
   dotenv:
     specifier: ^16.3.1
     version: 16.6.1
+  jito-ts:
+    specifier: ^4.2.1
+    version: 4.2.1
 
 devDependencies:
   '@types/bs58':
@@ -1524,7 +1527,7 @@ packages:
       fast-stable-stringify: 1.0.0
       jayson: 4.2.0
       node-fetch: 2.7.0
-      rpc-websockets: 7.5.1
+      rpc-websockets: 7.10.0
       superstruct: 0.14.2
     transitivePeerDependencies:
       - bufferutil
@@ -1608,6 +1611,13 @@ packages:
     engines: {node: '>=20.18.0'}
     dependencies:
       '@grpc/grpc-js': 1.14.0
+    dev: false
+
+  /@types/bs58@4.0.4:
+    resolution: {integrity: sha512-0IEpMFXXQi2zXaXl9GJ3sRwQo0uEkD+yFOv+FnAU5lkPtcu6h61xb7jc2CFPEZ5BUOaiP13ThuGc9HD4R8lR5g==}
+    dependencies:
+      '@types/node': 20.19.23
+      base-x: 3.0.11
     dev: false
 
   /@types/bs58@5.0.0:
@@ -2434,6 +2444,26 @@ packages:
       - utf-8-validate
     dev: false
 
+  /jito-ts@4.2.1:
+    resolution: {integrity: sha512-4QXarMNTzoTZHxu9HLEiM2HcEN+8SMOlnxrP6rvaqh6jm5M3x2+it7HP4gFJlKDNiK5iBwML8mid5CdflA3smA==}
+    dependencies:
+      '@grpc/grpc-js': 1.14.0
+      '@noble/ed25519': 1.7.5
+      '@solana/web3.js': 1.77.4
+      '@types/bs58': 4.0.4
+      agentkeepalive: 4.6.0
+      bs58: 6.0.0
+      dotenv: 16.6.1
+      jayson: 4.2.0
+      node-fetch: 2.7.0
+      rpc-websockets: 7.10.0
+      superstruct: 1.0.4
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - utf-8-validate
+    dev: false
+
   /js-sha256@0.11.1:
     resolution: {integrity: sha512-o6WSo/LUvY2uC4j7mO50a2ms7E/EAdbP0swigLV+nzHKTTaYnaLIWJ02VdXrsJX0vGedDESQnLsOekr94ryfjg==}
     dev: false
@@ -2602,6 +2632,18 @@ packages:
   /resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
     dev: true
+
+  /rpc-websockets@7.10.0:
+    resolution: {integrity: sha512-cemZ6RiDtYZpPiBzYijdOrkQQzmBCmug0E9SdRH2gIUNT15ql4mwCYWIp0VnSZq6Qrw/JkGUygp4PrK1y9KfwQ==}
+    dependencies:
+      '@babel/runtime': 7.28.4
+      eventemitter3: 4.0.7
+      uuid: 8.3.2
+      ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+    optionalDependencies:
+      bufferutil: 4.0.9
+      utf-8-validate: 5.0.10
+    dev: false
 
   /rpc-websockets@7.5.1:
     resolution: {integrity: sha512-kGFkeTsmd37pHPMaHIgN1LVKXMi0JD782v4Ds9ZKtLlwdTKjn+CxM9A9/gLT2LaOuEcEFGL98h1QWQtlOIdW0w==}
