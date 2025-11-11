@@ -123,7 +123,7 @@ async function initializeDriftClient(
     connection,
     wallet: wallet,
     env,
-    perpMarketIndexes: [0], // Subscribe to SOL-PERP
+    perpMarketIndexes: [0, 1], // Subscribe to multiple perp markets (0 = SOL-PERP, 1 = other markets)
     spotMarketIndexes: [0, 1], // Subscribe to USDC and SOL markets
     accountSubscription: {
       type: 'websocket',
@@ -189,24 +189,6 @@ async function checkPositionDetails() {
 
     console.log(`\n📊 Found ${perpPositions.length} active perp position(s)\n`);
 
-    // Get perp market for price data
-    const perpMarket = driftClient.getPerpMarketAccount(0);
-    if (!perpMarket) {
-      throw new Error('Perp market 0 not found');
-    }
-
-    const oraclePriceData = driftClient.getOraclePriceDataAndSlot(
-      perpMarket.amm.oracle,
-      perpMarket.amm.oracleSource
-    );
-
-    if (!oraclePriceData) {
-      throw new Error('Oracle price data not available');
-    }
-
-    const markPrice = oraclePriceData.data.price;
-    const markPriceUSD = markPrice.toNumber() / 1e6;
-
     // Display each position
     for (let i = 0; i < perpPositions.length; i++) {
       const position = perpPositions[i];
@@ -220,18 +202,40 @@ async function checkPositionDetails() {
         continue;
       }
 
+      // Get perp market for this position's market index
+      const perpMarket = driftClient.getPerpMarketAccount(marketIndex);
+      if (!perpMarket) {
+        console.error(`\n⚠️  Warning: Perp market ${marketIndex} not found, skipping position`);
+        continue;
+      }
+
+      const oraclePriceData = driftClient.getOraclePriceDataAndSlot(
+        perpMarket.amm.oracle,
+        perpMarket.amm.oracleSource
+      );
+
+      if (!oraclePriceData) {
+        console.error(`\n⚠️  Warning: Oracle price data not available for market ${marketIndex}, skipping position`);
+        continue;
+      }
+
+      const markPrice = oraclePriceData.data.price;
+      const markPriceUSD = markPrice.toNumber() / 1e6;
+
       console.log('='.repeat(60));
       console.log(`POSITION #${i + 1} - Market Index ${marketIndex}`);
       console.log('='.repeat(60));
 
       // Position size
-      const solQuantity = baseAssetAmountAbs.toNumber() / BASE_PRECISION.toNumber();
+      // Note: For non-SOL markets, this will show the base asset amount, not SOL
+      const baseAssetQuantity = baseAssetAmountAbs.toNumber() / BASE_PRECISION.toNumber();
       console.log(`\n📏 Position Size:`);
       console.log(`  Direction: ${direction === PositionDirection.LONG ? 'LONG' : 'SHORT'}`);
       console.log(`  Base Asset Amount: ${baseAssetAmountAbs.toString()}`);
-      console.log(`  SOL Quantity: ${solQuantity.toFixed(4)} SOL`);
+      console.log(`  Base Asset Quantity: ${baseAssetQuantity.toFixed(4)} (in base asset units)`);
 
       // Position notional (current value)
+      // Formula: positionNotional = baseAmount * price / BASE_PRECISION
       const positionNotional = baseAssetAmountAbs.mul(markPrice).div(BASE_PRECISION);
       const positionNotionalUSD = positionNotional.toNumber() / 1e6;
       console.log(`  Position Notional: $${positionNotionalUSD.toFixed(6)} USDC`);
