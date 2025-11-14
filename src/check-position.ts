@@ -252,16 +252,62 @@ async function checkPositionDetails() {
       // Mark price (current market price)
       console.log(`📈 Mark Price: $${markPriceUSD.toFixed(6)} USD`);
 
-      // Unrealized PnL
+      // Calculate exact PnL using SDK method (includes funding fees)
       const unrealizedPnl = user.getUnrealizedPNL(true, marketIndex);
       const unrealizedPnlUSD = unrealizedPnl.toNumber() / 1e6;
+      
+      // Manual calculation for verification and breakdown
+      // Current position value = baseAmount * markPrice
+      const currentPositionValue = baseAssetAmountAbs.mul(markPrice).div(BASE_PRECISION);
+      const currentPositionValueUSD = currentPositionValue.toNumber() / 1e6;
+      
+      // Cost basis (what we paid to enter)
+      const costBasisUSD = quoteEntryAmount.abs().toNumber() / 1e6;
+      
+      // Calculate funding fees from position data
+      // The SDK's getUnrealizedPNL already includes funding fees, but we can show the breakdown
+      const lastCumulativeFundingRate = position.lastCumulativeFundingRate || ZERO;
+      
+      // Get current cumulative funding rate from market (use appropriate rate for long/short)
+      const currentCumulativeFundingRate = direction === PositionDirection.LONG
+        ? (perpMarket.amm.cumulativeFundingRateLong || ZERO)
+        : (perpMarket.amm.cumulativeFundingRateShort || ZERO);
+      
+      // Calculate funding fee paid/received
+      // Funding fee = baseAssetAmount * (currentCumulativeFundingRate - lastCumulativeFundingRate)
+      // The cumulative funding rate is stored with FUNDING_PRECISION (1e10)
+      const fundingRateDiff = currentCumulativeFundingRate.sub(lastCumulativeFundingRate);
+      
+      // Funding fee calculation: baseAssetAmount * fundingRateDiff / FUNDING_PRECISION
+      // Result is in quote precision (1e6)
+      const FUNDING_PRECISION = new BN(1e10);
+      const fundingFeeBN = baseAssetAmountAbs.mul(fundingRateDiff).div(FUNDING_PRECISION);
+      const fundingFeeUSD = fundingFeeBN.toNumber() / 1e6;
+      
+      // Price movement PnL (without funding)
+      const priceMovementPnLUSD = currentPositionValueUSD - costBasisUSD;
+      
+      // Total PnL = Price Movement + Funding Fees
+      // Note: SDK's getUnrealizedPNL should match this calculation
+      const calculatedTotalPnLUSD = priceMovementPnLUSD + fundingFeeUSD;
+      
+      // Percentage calculation
       const unrealizedPnlPercent = entryPriceUSD > 0 
         ? ((markPriceUSD - entryPriceUSD) / entryPriceUSD) * 100 * (direction === PositionDirection.LONG ? 1 : -1)
         : 0;
       
-      console.log(`\n💵 Unrealized P&L:`);
-      console.log(`  Amount: ${unrealizedPnlUSD >= 0 ? '+' : ''}$${unrealizedPnlUSD.toFixed(6)} USDC`);
+      console.log(`\n💵 Exact P&L (Unrealized):`);
+      console.log(`  Total Exact P&L: ${unrealizedPnlUSD >= 0 ? '+' : ''}$${unrealizedPnlUSD.toFixed(6)} USDC`);
       console.log(`  Percentage: ${unrealizedPnlPercent >= 0 ? '+' : ''}${unrealizedPnlPercent.toFixed(2)}%`);
+      console.log(`\n  📊 P&L Breakdown:`);
+      console.log(`    Current Position Value: $${currentPositionValueUSD.toFixed(6)} USDC`);
+      console.log(`    Cost Basis (Entry): $${costBasisUSD.toFixed(6)} USDC`);
+      console.log(`    Price Movement P&L: ${priceMovementPnLUSD >= 0 ? '+' : ''}$${priceMovementPnLUSD.toFixed(6)} USDC`);
+      console.log(`    Funding Fees: ${fundingFeeUSD >= 0 ? '+' : ''}$${fundingFeeUSD.toFixed(6)} USDC`);
+      console.log(`    ──────────────────────────────────────`);
+      console.log(`    Calculated Total: ${calculatedTotalPnLUSD >= 0 ? '+' : ''}$${calculatedTotalPnLUSD.toFixed(6)} USDC`);
+      console.log(`    SDK Method: ${unrealizedPnlUSD >= 0 ? '+' : ''}$${unrealizedPnlUSD.toFixed(6)} USDC`);
+      console.log(`    (Note: SDK method is the authoritative source and includes all fees)`);
 
       // Margin and leverage
       const perpMarketAccount = driftClient.getPerpMarketAccount(marketIndex);
@@ -338,8 +384,7 @@ async function checkPositionDetails() {
         console.log(`  Estimated Leverage: ${estimatedLeverage.toFixed(2)}x`);
       }
 
-      // Cost basis (quote entry amount in USD)
-      const costBasisUSD = quoteEntryAmount.abs().toNumber() / 1e6;
+      // Cost basis (already calculated above, just display it)
       console.log(`\n💼 Cost Basis: $${costBasisUSD.toFixed(2)} USDC`);
 
       // Break even price
