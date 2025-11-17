@@ -249,6 +249,7 @@ function ChartPanel() {
     const chartRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     const seriesRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     const [isLoading, setIsLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
+    const [chartError, setChartError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const { chartBars, selectedMetric, setSelectedMetric } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$lib$2f$store$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMarketStore"])();
     const metricOptions = [
         {
@@ -272,12 +273,13 @@ function ChartPanel() {
                 "ChartPanel.useEffect.initChart": async ()=>{
                     try {
                         // Dynamic import for client-side only
-                        const { createChart, ColorType } = await __turbopack_context__.A("[project]/dashboard/node_modules/.pnpm/lightweight-charts@5.0.9/node_modules/lightweight-charts/dist/lightweight-charts.development.mjs [app-client] (ecmascript, async loader)");
+                        const LightweightCharts = await __turbopack_context__.A("[project]/dashboard/node_modules/.pnpm/lightweight-charts@5.0.9/node_modules/lightweight-charts/dist/lightweight-charts.development.mjs [app-client] (ecmascript, async loader)");
                         if (!chartContainerRef.current) return;
-                        const chart = createChart(chartContainerRef.current, {
+                        // Use createChart from the module
+                        const chart = LightweightCharts.createChart(chartContainerRef.current, {
                             layout: {
                                 background: {
-                                    type: ColorType.Solid,
+                                    type: LightweightCharts.ColorType.Solid,
                                     color: '#111827'
                                 },
                                 textColor: '#9ca3af'
@@ -297,6 +299,10 @@ function ChartPanel() {
                                 secondsVisible: false
                             }
                         });
+                        // Add line series - check if method exists
+                        if (typeof chart.addLineSeries !== 'function') {
+                            throw new Error('addLineSeries method not found on chart object');
+                        }
                         const lineSeries = chart.addLineSeries({
                             color: '#3b82f6',
                             lineWidth: 2
@@ -304,6 +310,7 @@ function ChartPanel() {
                         chartRef.current = chart;
                         seriesRef.current = lineSeries;
                         setIsLoading(false);
+                        setChartError(null);
                         // Handle resize
                         const handleResize = {
                             "ChartPanel.useEffect.initChart.handleResize": ()=>{
@@ -322,6 +329,7 @@ function ChartPanel() {
                         })["ChartPanel.useEffect.initChart"];
                     } catch (error) {
                         console.error('Error initializing chart:', error);
+                        setChartError(error instanceof Error ? error.message : 'Failed to initialize chart');
                         setIsLoading(false);
                     }
                 }
@@ -330,7 +338,11 @@ function ChartPanel() {
             return ({
                 "ChartPanel.useEffect": ()=>{
                     if (chartRef.current) {
-                        chartRef.current.remove();
+                        try {
+                            chartRef.current.remove();
+                        } catch (e) {
+                            console.error('Error removing chart:', e);
+                        }
                         chartRef.current = null;
                         seriesRef.current = null;
                     }
@@ -372,7 +384,7 @@ function ChartPanel() {
                         children: "Historical Data"
                     }, void 0, false, {
                         fileName: "[project]/dashboard/components/ChartPanel.tsx",
-                        lineNumber: 112,
+                        lineNumber: 128,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -384,47 +396,78 @@ function ChartPanel() {
                                 children: option.label
                             }, option.key, false, {
                                 fileName: "[project]/dashboard/components/ChartPanel.tsx",
-                                lineNumber: 119,
+                                lineNumber: 135,
                                 columnNumber: 13
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/dashboard/components/ChartPanel.tsx",
-                        lineNumber: 113,
+                        lineNumber: 129,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/dashboard/components/ChartPanel.tsx",
-                lineNumber: 111,
+                lineNumber: 127,
                 columnNumber: 7
             }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                ref: chartContainerRef,
-                className: "w-full",
-                style: {
-                    minHeight: '400px'
-                }
-            }, void 0, false, {
+            chartError ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "text-center py-20 text-red-400",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "mb-2",
+                        children: [
+                            "Chart Error: ",
+                            chartError
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/dashboard/components/ChartPanel.tsx",
+                        lineNumber: 144,
+                        columnNumber: 11
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "text-sm text-gray-500",
+                        children: "Try refreshing the page"
+                    }, void 0, false, {
+                        fileName: "[project]/dashboard/components/ChartPanel.tsx",
+                        lineNumber: 145,
+                        columnNumber: 11
+                    }, this)
+                ]
+            }, void 0, true, {
                 fileName: "[project]/dashboard/components/ChartPanel.tsx",
-                lineNumber: 126,
-                columnNumber: 7
-            }, this),
-            (isLoading || chartBars.length === 0) && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "text-center py-20 text-gray-400",
-                children: isLoading ? 'Initializing chart...' : 'Loading chart data...'
-            }, void 0, false, {
-                fileName: "[project]/dashboard/components/ChartPanel.tsx",
-                lineNumber: 129,
+                lineNumber: 143,
                 columnNumber: 9
-            }, this)
+            }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        ref: chartContainerRef,
+                        className: "w-full",
+                        style: {
+                            minHeight: '400px'
+                        }
+                    }, void 0, false, {
+                        fileName: "[project]/dashboard/components/ChartPanel.tsx",
+                        lineNumber: 149,
+                        columnNumber: 11
+                    }, this),
+                    (isLoading || chartBars.length === 0) && !chartError && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$3_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "text-center py-20 text-gray-400",
+                        children: isLoading ? 'Initializing chart...' : 'Loading chart data...'
+                    }, void 0, false, {
+                        fileName: "[project]/dashboard/components/ChartPanel.tsx",
+                        lineNumber: 152,
+                        columnNumber: 13
+                    }, this)
+                ]
+            }, void 0, true)
         ]
     }, void 0, true, {
         fileName: "[project]/dashboard/components/ChartPanel.tsx",
-        lineNumber: 110,
+        lineNumber: 126,
         columnNumber: 5
     }, this);
 }
-_s(ChartPanel, "mbHYUvJxS5y08muHjssKhnoWapY=", false, function() {
+_s(ChartPanel, "BJNH+DSr3pDAfZ/Z3ki/aq07ccc=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$dashboard$2f$lib$2f$store$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMarketStore"]
     ];

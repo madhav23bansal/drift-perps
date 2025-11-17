@@ -8,6 +8,7 @@ export function ChartPanel() {
   const chartRef = useRef<any>(null);
   const seriesRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [chartError, setChartError] = useState<string | null>(null);
 
   const { chartBars, selectedMetric, setSelectedMetric } = useMarketStore();
 
@@ -24,13 +25,17 @@ export function ChartPanel() {
     const initChart = async () => {
       try {
         // Dynamic import for client-side only
-        const { createChart, ColorType } = await import('lightweight-charts');
+        const LightweightCharts = await import('lightweight-charts');
 
         if (!chartContainerRef.current) return;
 
-        const chart = createChart(chartContainerRef.current, {
+        // Use createChart from the module
+        const chart = LightweightCharts.createChart(chartContainerRef.current, {
           layout: {
-            background: { type: ColorType.Solid, color: '#111827' },
+            background: {
+              type: LightweightCharts.ColorType.Solid,
+              color: '#111827'
+            },
             textColor: '#9ca3af',
           },
           grid: {
@@ -45,6 +50,11 @@ export function ChartPanel() {
           },
         });
 
+        // Add line series - check if method exists
+        if (typeof chart.addLineSeries !== 'function') {
+          throw new Error('addLineSeries method not found on chart object');
+        }
+
         const lineSeries = chart.addLineSeries({
           color: '#3b82f6',
           lineWidth: 2,
@@ -53,6 +63,7 @@ export function ChartPanel() {
         chartRef.current = chart;
         seriesRef.current = lineSeries;
         setIsLoading(false);
+        setChartError(null);
 
         // Handle resize
         const handleResize = () => {
@@ -70,6 +81,7 @@ export function ChartPanel() {
         };
       } catch (error) {
         console.error('Error initializing chart:', error);
+        setChartError(error instanceof Error ? error.message : 'Failed to initialize chart');
         setIsLoading(false);
       }
     };
@@ -78,7 +90,11 @@ export function ChartPanel() {
 
     return () => {
       if (chartRef.current) {
-        chartRef.current.remove();
+        try {
+          chartRef.current.remove();
+        } catch (e) {
+          console.error('Error removing chart:', e);
+        }
         chartRef.current = null;
         seriesRef.current = null;
       }
@@ -123,12 +139,21 @@ export function ChartPanel() {
         </select>
       </div>
 
-      <div ref={chartContainerRef} className="w-full" style={{ minHeight: '400px' }} />
-
-      {(isLoading || chartBars.length === 0) && (
-        <div className="text-center py-20 text-gray-400">
-          {isLoading ? 'Initializing chart...' : 'Loading chart data...'}
+      {chartError ? (
+        <div className="text-center py-20 text-red-400">
+          <p className="mb-2">Chart Error: {chartError}</p>
+          <p className="text-sm text-gray-500">Try refreshing the page</p>
         </div>
+      ) : (
+        <>
+          <div ref={chartContainerRef} className="w-full" style={{ minHeight: '400px' }} />
+
+          {(isLoading || chartBars.length === 0) && !chartError && (
+            <div className="text-center py-20 text-gray-400">
+              {isLoading ? 'Initializing chart...' : 'Loading chart data...'}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
