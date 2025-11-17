@@ -29,7 +29,7 @@ async function listAllMarkets() {
     const allMarkets = PerpMarkets[ENVIRONMENT];
     console.log(`Total Markets Available: ${allMarkets.length}\n`);
     
-    // Initialize DriftClient (minimal subscription, we'll fetch markets individually)
+    // Initialize DriftClient subscribing to all perp markets up front
     const driftClient = new DriftClient({
       connection,
       wallet: {
@@ -42,15 +42,15 @@ async function listAllMarkets() {
         },
       },
       env: ENVIRONMENT,
-      perpMarketIndexes: [], // Start with no markets, fetch individually
+      perpMarketIndexes: allMarkets.map((market) => market.marketIndex),
       spotMarketIndexes: [0, 1],
       accountSubscription: {
-        type: 'polling', // Use polling instead of websocket to avoid subscription issues
-        commitment: 'confirmed',
+        type: 'websocket',
       },
     });
 
     await driftClient.subscribe();
+    await driftClient.fetchAccounts();
 
     console.log('='.repeat(80));
     console.log('MARKET DETAILS');
@@ -68,9 +68,6 @@ async function listAllMarkets() {
       // Try to fetch the market account
       let marketAccount;
       try {
-        // Add market to subscription if not already subscribed
-        await driftClient.addPerpMarket(marketIndex);
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for subscription
         marketAccount = driftClient.getPerpMarketAccount(marketIndex);
       } catch (error) {
         console.log(`⚠️  Market ${marketIndex} (${marketConfig.baseAssetSymbol}-PERP): Not available or delisted`);
